@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>寄生虫红色单词卡片</title>
+  <style>
+    :root {
+      --bg1: #f8fafc;
+      --bg2: #eef2ff;
+      --card: rgba(255,255,255,0.92);
+      --text: #111827;
+      --muted: #6b7280;
+      --line: #e5e7eb;
+      --red: #dc2626;
+      --green: #16a34a;
+      --blue: #2563eb;
+      --orange: #ea580c;
+      --shadow: 0 20px 60px rgba(15, 23, 42, 0.14);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft YaHei", "PingFang SC", Arial, sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 10%, #ffffff 0, transparent 30%), linear-gradient(135deg, var(--bg1), var(--bg2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 22px;
+    }
+    .app {
+      width: min(960px, 100%);
+    }
+    .topbar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+    .title h1 {
+      margin: 0 0 4px;
+      font-size: clamp(22px, 4vw, 34px);
+      letter-spacing: 0.02em;
+    }
+    .title p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      background: rgba(255,255,255,0.78);
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 8px 12px;
+      color: #374151;
+      font-weight: 600;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+      white-space: nowrap;
+    }
+    .stage {
+      background: var(--card);
+      border: 1px solid rgba(255,255,255,0.7);
+      border-radius: 30px;
+      box-shadow: var(--shadow);
+      padding: clamp(22px, 5vw, 44px);
+      backdrop-filter: blur(12px);
+      position: relative;
+      overflow: hidden;
+    }
+    .stage::after {
+      content: "";
+      position: absolute;
+      width: 260px;
+      height: 260px;
+      right: -120px;
+      top: -120px;
+      background: rgba(220, 38, 38, 0.08);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .card-meta {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      color: var(--muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+      position: relative;
+      z-index: 1;
+    }
+    .word {
+      min-height: 150px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-size: clamp(34px, 7vw, 68px);
+      line-height: 1.12;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      padding: 20px 6px 10px;
+      position: relative;
+      z-index: 1;
+      word-break: keep-all;
+      overflow-wrap: anywhere;
+    }
+    .redmark {
+      color: var(--red);
+      text-decoration: underline;
+      text-decoration-thickness: 0.08em;
+      text-underline-offset: 0.12em;
+    }
+    .meaning {
+      text-align: center;
+      min-height: 72px;
+      color: #374151;
+      font-size: clamp(17px, 3vw, 24px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 8px;
+      margin: 10px 0 20px;
+      position: relative;
+      z-index: 1;
+    }
+    .meaning.hidden {
+      color: var(--muted);
+      font-size: 16px;
+    }
+    .related {
+      font-size: 14px;
+      color: var(--muted);
+    }
+    .actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      position: relative;
+      z-index: 1;
+    }
+    button {
+      border: none;
+      border-radius: 18px;
+      padding: 16px 18px;
+      font-size: 18px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease, opacity 0.12s ease;
+      box-shadow: 0 10px 22px rgba(15,23,42,0.08);
+    }
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(1px) scale(0.99); }
+    .known { background: #dcfce7; color: #166534; }
+    .unknown { background: #fee2e2; color: #991b1b; }
+    .small-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-top: 16px;
+      position: relative;
+      z-index: 1;
+    }
+    .small-actions button {
+      font-size: 14px;
+      padding: 10px 12px;
+      border-radius: 999px;
+      background: #fff;
+      color: #374151;
+      border: 1px solid var(--line);
+      box-shadow: none;
+    }
+    .progress-wrap {
+      height: 10px;
+      background: #e5e7eb;
+      border-radius: 999px;
+      margin-top: 20px;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+    .progress { height: 100%; width: 0%; background: linear-gradient(90deg, var(--blue), var(--green)); transition: width 0.25s ease; }
+    .panel {
+      margin-top: 16px;
+      display: none;
+      background: rgba(255,255,255,0.82);
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      padding: 16px;
+      max-height: 260px;
+      overflow: auto;
+    }
+    .panel.show { display: block; }
+    .panel ol { margin: 0; padding-left: 22px; }
+    .panel li { margin: 7px 0; }
+    @media (max-width: 620px) {
+      body { padding: 14px; align-items: flex-start; }
+      .stage { border-radius: 22px; padding: 22px 16px; }
+      .actions { grid-template-columns: 1fr; }
+      .word { min-height: 130px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="topbar">
+      <div class="title">
+        <h1>寄生虫红色单词卡片</h1>
+        <p>共 <strong id="total">0</strong> 个标红词条；点击认识/不认识后自动进入下一个。</p>
+      </div>
+      <div class="stats">
+        <span class="pill">已刷：<span id="done">0</span></span>
+        <span class="pill">认识：<span id="knownCount">0</span></span>
+        <span class="pill">不认识：<span id="unknownCount">0</span></span>
+      </div>
+    </div>
+
+    <section class="stage">
+      <div class="card-meta">
+        <span id="counter">第 1 / 1 个</span>
+        <span id="source">英文名</span>
+      </div>
+      <div class="word" id="word"></div>
+      <div class="meaning hidden" id="meaning">点击“显示中文”再看释义</div>
+      <div class="actions">
+        <button class="known" id="knownBtn">认识</button>
+        <button class="unknown" id="unknownBtn">不认识</button>
+      </div>
+      <div class="small-actions">
+        <button id="showMeaningBtn">显示中文</button>
+        <button id="speakBtn">朗读</button>
+        <button id="skipBtn">跳过</button>
+        <button id="reviewUnknownBtn">只刷不认识</button>
+        <button id="toggleUnknownBtn">查看不认识列表</button>
+        <button id="shuffleBtn">重新随机</button>
+        <button id="resetBtn">清空记录</button>
+      </div>
+      <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+      <div class="panel" id="unknownPanel"></div>
+    </section>
+  </main>
+
+  <script>
+    const WORDS = [
+  {
+    "word": "Plasmodium vivax",
+    "html": "Plasmodium <span class=\"redmark\">viv</span>ax",
+    "meaning": "间日疟原虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "viv",
+    "row": 4
+  },
+  {
+    "word": "Plasmodium malariae",
+    "html": "Plasmodium <span class=\"redmark\">mala</span>riae",
+    "meaning": "三日疟原虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "mala",
+    "row": 5
+  },
+  {
+    "word": "Plasmodium falciparum",
+    "html": "Plasmodium <span class=\"redmark\">falci</span>parum",
+    "meaning": "恶性疟原虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "falci",
+    "row": 6
+  },
+  {
+    "word": "Plasmodium ovale",
+    "html": "Plasmodium <span class=\"redmark\">oval</span>e",
+    "meaning": "卵形疟原虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "oval",
+    "row": 7
+  },
+  {
+    "word": "Toxoplasma gondii",
+    "html": "Toxoplasma <span class=\"redmark\">gondii</span>",
+    "meaning": "刚地弓形虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "gondii",
+    "row": 8
+  },
+  {
+    "word": "Giardia lamblia",
+    "html": "<span class=\"redmark\">Giardia</span> lamblia",
+    "meaning": "蓝氏贾第鞭毛虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Giardia",
+    "row": 10
+  },
+  {
+    "word": "Trypanosoma cruzi",
+    "html": "Trypanosoma <span class=\"redmark\">cru</span>zi",
+    "meaning": "克氏锥虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "cru",
+    "row": 11
+  },
+  {
+    "word": "Trypanosoma brucei",
+    "html": "Trypanosoma<span class=\"redmark\"> bru</span>cei",
+    "meaning": "布氏锥虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "bru",
+    "row": 12
+  },
+  {
+    "word": "Leishmania donovani",
+    "html": "Leishmania <span class=\"redmark\">don</span>ovani",
+    "meaning": "杜氏利什曼原虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "don",
+    "row": 13
+  },
+  {
+    "word": "Trichomonas vaginalis（阴道）",
+    "html": "Trichomonas <span class=\"redmark\">vaginalis（阴道）</span>",
+    "meaning": "阴道毛滴虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "vaginalis（阴道）",
+    "row": 14
+  },
+  {
+    "word": "Entamoeba histolytica（组织学的）",
+    "html": "Entamoeba <span class=\"redmark\">histolytica（组织学的）</span>",
+    "meaning": "溶组织内阿米巴",
+    "related": "",
+    "source": "英文名",
+    "redParts": "histolytica（组织学的）",
+    "row": 16
+  },
+  {
+    "word": "amoeba（阿米巴）",
+    "html": "<span class=\"redmark\">amoeba（阿米巴）</span>",
+    "meaning": "溶组织内阿米巴",
+    "related": "Entamoeba histolytica（组织学的）",
+    "source": "备注/俗名",
+    "redParts": "amoeba（阿米巴）",
+    "row": 16
+  },
+  {
+    "word": "Clonorchis sinensis",
+    "html": "Clonorchis <span class=\"redmark\">sinen</span>sis",
+    "meaning": "华支睾吸虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "sinen",
+    "row": 18
+  },
+  {
+    "word": "Fasciolopsis buski",
+    "html": "Fasciolopsis <span class=\"redmark\">bus</span>ki",
+    "meaning": "布氏姜片吸虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "bus",
+    "row": 19
+  },
+  {
+    "word": "Paragonimus westermani",
+    "html": "Paragonimus <span class=\"redmark\">west</span>ermani",
+    "meaning": "卫氏并殖吸虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "west",
+    "row": 20
+  },
+  {
+    "word": "Paragonimus skrjabini",
+    "html": "Paragonimus <span class=\"redmark\">skr</span>jabini",
+    "meaning": "斯氏并殖吸虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "skr",
+    "row": 21
+  },
+  {
+    "word": "Schistosoma japonicum",
+    "html": "Schistosoma <span class=\"redmark\">japo</span>nicum",
+    "meaning": "日本裂体吸虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "japo",
+    "row": 22
+  },
+  {
+    "word": "Schistosoma mansoni",
+    "html": "Schistosoma <span class=\"redmark\">man</span>soni",
+    "meaning": "曼氏血吸虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "man",
+    "row": 23
+  },
+  {
+    "word": "Taenia solium",
+    "html": "<span class=\"redmark\">Ta</span>enia <span class=\"redmark\">soli</span>um",
+    "meaning": "链状带绦虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Ta / soli",
+    "row": 31
+  },
+  {
+    "word": "Taenia saginata",
+    "html": "Taenia <span class=\"redmark\">sagi</span>nata",
+    "meaning": "肥胖带绦虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "sagi",
+    "row": 32
+  },
+  {
+    "word": "Taenia asiatica",
+    "html": "Taenia <span class=\"redmark\">asia</span>tica",
+    "meaning": "亚洲带绦虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "asia",
+    "row": 33
+  },
+  {
+    "word": "Echinococcus granulosus",
+    "html": "<span class=\"redmark\">Echi</span>nococcus <span class=\"redmark\">granu</span>losus",
+    "meaning": "细粒棘球绦虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Echi / granu",
+    "row": 34
+  },
+  {
+    "word": "Echinococcus multilocularis",
+    "html": "Echinococcus <span class=\"redmark\">multi</span>locularis",
+    "meaning": "多房棘球绦虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "multi",
+    "row": 35
+  },
+  {
+    "word": "Spirometra mansoni",
+    "html": "<span class=\"redmark\">Spiro</span>metra <span class=\"redmark\">man</span>soni",
+    "meaning": "曼氏迭宫绦虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Spiro / man",
+    "row": 36
+  },
+  {
+    "word": "Hymenolepis nana",
+    "html": "Hymenolepis <span class=\"redmark\">nana</span>",
+    "meaning": "微小膜壳绦虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "nana",
+    "row": 37
+  },
+  {
+    "word": "Ascaris lumbricoides",
+    "html": "Ascaris<span class=\"redmark\"> lum</span>bricoides",
+    "meaning": "似蚓蛔线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "lum",
+    "row": 41
+  },
+  {
+    "word": "roundworm",
+    "html": "<span class=\"redmark\">round</span>worm",
+    "meaning": "似蚓蛔线虫",
+    "related": "Ascaris lumbricoides",
+    "source": "备注/俗名",
+    "redParts": "round",
+    "row": 41
+  },
+  {
+    "word": "Trichuris trichiura",
+    "html": "<span class=\"redmark\">Tri</span>churis <span class=\"redmark\">tri</span>chiura",
+    "meaning": "毛首鞭型线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Tri / tri",
+    "row": 42
+  },
+  {
+    "word": "whipworm",
+    "html": "<span class=\"redmark\">whip</span>worm",
+    "meaning": "毛首鞭型线虫",
+    "related": "Trichuris trichiura",
+    "source": "备注/俗名",
+    "redParts": "whip",
+    "row": 42
+  },
+  {
+    "word": "Toxocara",
+    "html": "<span class=\"redmark\">Toxo</span>cara",
+    "meaning": "弓首线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Toxo",
+    "row": 43
+  },
+  {
+    "word": "Ancylostoma duodenale",
+    "html": "Ancylostoma<span class=\"redmark\"> duode</span>nale",
+    "meaning": "十二指肠钩口线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "duode",
+    "row": 44
+  },
+  {
+    "word": "Necator americanus",
+    "html": "Necator <span class=\"redmark\">america</span>nus",
+    "meaning": "美洲板口线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "america",
+    "row": 45
+  },
+  {
+    "word": "Enterobius vermicularis",
+    "html": "Enterobius <span class=\"redmark\">vermi</span>cularis",
+    "meaning": "蠕形住肠线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "vermi",
+    "row": 46
+  },
+  {
+    "word": "pinworm",
+    "html": "<span class=\"redmark\">pin</span>worm",
+    "meaning": "蠕形住肠线虫",
+    "related": "Enterobius vermicularis",
+    "source": "备注/俗名",
+    "redParts": "pin",
+    "row": 46
+  },
+  {
+    "word": "Trichinella spiralis（螺旋的）",
+    "html": "Trichinella <span class=\"redmark\">spiralis（螺旋的）</span>",
+    "meaning": "旋毛形线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "spiralis（螺旋的）",
+    "row": 48
+  },
+  {
+    "word": "Wuchereria bancrofti",
+    "html": "Wuchereria<span class=\"redmark\"> ban</span>crofti",
+    "meaning": "班氏吴策线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "ban",
+    "row": 50
+  },
+  {
+    "word": "Brugia malayi",
+    "html": "Brugia <span class=\"redmark\">mala</span>yi",
+    "meaning": "马来布鲁线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "mala",
+    "row": 51
+  },
+  {
+    "word": "Loa loa",
+    "html": "<span class=\"redmark\">Loa loa</span>",
+    "meaning": "罗阿罗阿线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Loa loa",
+    "row": 53
+  },
+  {
+    "word": "Angiostrongylus cantonensis",
+    "html": "Angiostrongylus <span class=\"redmark\">cantonensis</span>",
+    "meaning": "广州管圆线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "cantonensis",
+    "row": 54
+  },
+  {
+    "word": "Thelazia callipaeda",
+    "html": "Thelazia <span class=\"redmark\">call</span>ipaeda",
+    "meaning": "结膜吸吮线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "call",
+    "row": 55
+  },
+  {
+    "word": "Gnathostoma spinigerum",
+    "html": "Gnathostoma <span class=\"redmark\">spin</span>igerum",
+    "meaning": "棘颚口线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "spin",
+    "row": 56
+  },
+  {
+    "word": "Anisakis",
+    "html": "<span class=\"redmark\">Anisakis</span>",
+    "meaning": "异尖线虫",
+    "related": "",
+    "source": "英文名",
+    "redParts": "Anisakis",
+    "row": 59
+  }
+];
+    const STORAGE_KEY = 'parasite_red_vocab_v1';
+
+    let state = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{"known":{},"unknown":{}}');
+    let deck = [];
+    let index = 0;
+    let meaningShown = false;
+    let unknownMode = false;
+
+    const $ = id => document.getElementById(id);
+    const cleanSpeakText = text => text.replace(/[（(].*?[）)]/g, '').trim();
+
+    function save() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+    function shuffle(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    }
+    function makeDeck(onlyUnknown = false) {
+      unknownMode = onlyUnknown;
+      const base = onlyUnknown ? WORDS.filter(w => state.unknown[w.word]) : WORDS.slice();
+      deck = shuffle(base.length ? base : WORDS.slice());
+      index = 0;
+      meaningShown = false;
+      render();
+    }
+    function current() {
+      if (!deck.length) makeDeck(false);
+      return deck[index % deck.length];
+    }
+    function renderStats() {
+      const known = Object.keys(state.known).length;
+      const unknown = Object.keys(state.unknown).length;
+      $('total').textContent = WORDS.length;
+      $('knownCount').textContent = known;
+      $('unknownCount').textContent = unknown;
+      $('done').textContent = Math.min(known + unknown, WORDS.length);
+      $('progress').style.width = `${Math.min(100, ((known + unknown) / WORDS.length) * 100)}%`;
+    }
+    function render() {
+      renderStats();
+      const w = current();
+      $('counter').textContent = `第 ${index + 1} / ${deck.length} 个${unknownMode ? '（不认识复习）' : ''}`;
+      $('source').textContent = w.source + (w.redParts ? `｜标红：${w.redParts}` : '');
+      $('word').innerHTML = w.html;
+      $('meaning').className = meaningShown ? 'meaning' : 'meaning hidden';
+      if (meaningShown) {
+        $('meaning').innerHTML = `<div>${w.meaning || '（无中文释义）'}</div>` + (w.related ? `<div class="related">对应英文名：${w.related}</div>` : '');
+        $('showMeaningBtn').textContent = '隐藏中文';
+      } else {
+        $('meaning').textContent = '点击“显示中文”再看释义';
+        $('showMeaningBtn').textContent = '显示中文';
+      }
+      renderUnknownPanel();
+    }
+    function nextCard() {
+      if (!deck.length) return;
+      index = (index + 1) % deck.length;
+      meaningShown = false;
+      render();
+    }
+    function markKnown() {
+      const w = current();
+      state.known[w.word] = true;
+      delete state.unknown[w.word];
+      save();
+      if (unknownMode) deck = deck.filter(x => x.word !== w.word);
+      if (!deck.length) makeDeck(false); else nextCard();
+    }
+    function markUnknown() {
+      const w = current();
+      state.unknown[w.word] = true;
+      delete state.known[w.word];
+      save();
+      nextCard();
+    }
+    function renderUnknownPanel() {
+      const panel = $('unknownPanel');
+      if (!panel.classList.contains('show')) return;
+      const list = WORDS.filter(w => state.unknown[w.word]);
+      if (!list.length) {
+        panel.innerHTML = '<strong>目前没有“不认识”的词。</strong>';
+        return;
+      }
+      panel.innerHTML = '<strong>不认识列表：</strong><ol>' + list.map(w => `<li>${w.html} — ${w.meaning || ''}</li>`).join('') + '</ol>';
+    }
+    function speakCurrent() {
+      const w = current();
+      if (!('speechSynthesis' in window)) return;
+      speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(cleanSpeakText(w.word));
+      utterance.lang = 'en-US';
+      utterance.rate = 0.82;
+      speechSynthesis.speak(utterance);
+    }
+
+    $('knownBtn').onclick = markKnown;
+    $('unknownBtn').onclick = markUnknown;
+    $('skipBtn').onclick = nextCard;
+    $('showMeaningBtn').onclick = () => { meaningShown = !meaningShown; render(); };
+    $('speakBtn').onclick = speakCurrent;
+    $('shuffleBtn').onclick = () => makeDeck(false);
+    $('reviewUnknownBtn').onclick = () => makeDeck(true);
+    $('resetBtn').onclick = () => {
+      if (confirm('确定清空认识/不认识记录吗？')) {
+        state = {known: {}, unknown: {}};
+        save();
+        makeDeck(false);
+      }
+    };
+    $('unknownPanel').onclick = () => {};
+    document.addEventListener('keydown', e => {
+      if (e.key === 'ArrowLeft' || e.key === '1') markKnown();
+      if (e.key === 'ArrowRight' || e.key === '2') markUnknown();
+      if (e.key === ' ') { e.preventDefault(); meaningShown = !meaningShown; render(); }
+      if (e.key.toLowerCase() === 's') speakCurrent();
+    });
+    $('toggleUnknownBtn').onclick = () => {
+      $('unknownPanel').classList.toggle('show');
+      renderUnknownPanel();
+    };
+    $('reviewUnknownBtn').addEventListener('contextmenu', e => e.preventDefault());
+
+    makeDeck(false);
+  </script>
+</body>
+</html>
